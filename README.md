@@ -8,12 +8,21 @@ Program to edit and view Graphviz code.
 
 To install the package from [PyPI](https://pypi.org/project/graphviz-code-viewer/), follow the instructions below:
 
+### With pip
 
 ```bash
 pip install --upgrade graphviz-code-viewer
 ```
 
 Execute `which graphviz-code-viewer` to see where it was installed, probably in `/home/USERNAME/.local/bin/graphviz-code-viewer`.
+
+### With pipx (recommended for desktop applications)
+
+```bash
+pipx install graphviz_code_viewer
+```
+
+If you need to upgrade later: `pipx upgrade graphviz_code_viewer`
 
 ### Using
 
