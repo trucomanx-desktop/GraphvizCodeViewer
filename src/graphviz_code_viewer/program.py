@@ -47,6 +47,8 @@ DEFAULT_CONTENT={   "error_loading_svg": "Error loading SVG file",
                     "action_saveimg_tooltip": "Save the output as binary or vector image (SVG,PNG,PDF)",
                     "action_load_example": "Load example",
                     "action_load_example_tooltip": "Select and load a example code",
+                    "action_open_examples": "Examples folder",
+                    "action_open_examples_tooltip": "Open the examples folder",
                     "action_configure_window": "Conf. window",
                     "action_configure_window_tooltip": "Open the configure window Json file",
                     "action_configure_editor": "Conf. Editor",
@@ -393,7 +395,15 @@ class MainWindow(QMainWindow):
         self.icon_path = resource_path("icons", "logo.png")
         self.setWindowIcon(QIcon(self.icon_path)) 
         
-        self.data_path = resource_path("data")
+        packaged_data_path = resource_path("data")
+        self.data_path = os.path.join(
+            os.path.expanduser("~"), ".config", about.__package__, "examples"
+        )
+        os.makedirs(self.data_path, exist_ok=True)
+        with os.scandir(self.data_path) as examples:
+            examples_dir_is_empty = next(examples, None) is None
+        if examples_dir_is_empty:
+            shutil.copytree(packaged_data_path, self.data_path, dirs_exist_ok=True)
 
         # Toolbar
         self.func_toolbar()
@@ -531,6 +541,15 @@ class MainWindow(QMainWindow):
         self.load_example_action.setToolTip(CONFIG["action_load_example_tooltip"])
         self.load_example_action.triggered.connect(self.load_example)
         toolbar.addAction(self.load_example_action)
+
+        self.open_examples_action = QAction(
+            QIcon(resource_path("icons", "document-open.png")),
+            CONFIG["action_open_examples"],
+            self,
+        )
+        self.open_examples_action.setToolTip(CONFIG["action_open_examples_tooltip"])
+        self.open_examples_action.triggered.connect(self.open_examples_folder)
+        toolbar.addAction(self.open_examples_action)
         
         # 
         self.configure_editor_action = QAction( QIcon(resource_path("icons", "text-configure.png")), 
@@ -745,6 +764,9 @@ class MainWindow(QMainWindow):
         
             self.editor.setPlainText(content)
             self.compile_dot()
+
+    def open_examples_folder(self):
+        QDesktopServices.openUrl(QUrl.fromLocalFile(self.data_path))
             
     def compile_dot(self):
         dot_code = self.editor.toPlainText()

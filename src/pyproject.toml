@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "graphviz_code_viewer"
-version = "0.1.5"
+version = "0.1.6"
 description = "Program to edit and view Graphviz code."
 readme = "README.md"
 authors = [{name = "Fernando Pujaico Rivera", email = "fernando.pujaico.rivera@gmail.com"}]
@@ -18,8 +18,7 @@ license = "GPL-3.0-only WITH Classpath-Exception-2.0 OR BSD-3-Clause"
 license-files = ["LICENSE"]
 keywords = ["writing", "translate"]
 dependencies = [
-    "PyQt5",
-    "deep-consultation"
+    "PyQt5"
 ]
 
 [project.urls]
@@ -35,4 +34,4 @@ dependencies = [
 packages = ["graphviz_code_viewer", "graphviz_code_viewer.modules"]
 
 [tool.setuptools.package-data]
-"graphviz_code_viewer" = ["icons/*.png", "data/*.svg", "data/*.dot"]
+"graphviz_code_viewer" = ["icons/*.png", "icons/*.svg", "data/*.svg", "data/*.dot"]
