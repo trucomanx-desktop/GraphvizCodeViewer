@@ -57,7 +57,8 @@ DEFAULT_CONTENT={   "error_loading_svg": "Error loading SVG file",
                     "action_about_tooltip": "About the program",
                     "action_coffee": "Coffee",
                     "action_coffee_tooltip": "Buy me a coffee (TrucomanX)",
-                    "file_path": "File path:",
+                    "file_path": "Current file path:",
+                    "no_saved": " (unsaved)",
                     "warning":"Warning",
                     "no_image_available":"No image available to save. Compile the code first.",
                     "save_image":"Save image",
@@ -431,6 +432,7 @@ class MainWindow(QMainWindow):
         
         # Editor e visualizador
         self.editor = TextEditor()
+        self.editor.textChanged.connect(self.update_unsaved_indicator)
 
         self.highlighter = GraphvizHighlighter(self.editor.document(), CONFIG_EDITOR["syntax_rules"])
         self.viewer = SvgViewer()
@@ -455,6 +457,8 @@ class MainWindow(QMainWindow):
         
         if os.path.exists(self.input_filepath):
             self.load_dot(filepath=self.input_filepath)
+        else:
+            self.update_unsaved_indicator()
             
         save_shortcut = QShortcut(QKeySequence(CONFIG_EDITOR["save_file"]), self)
         save_shortcut.activated.connect(lambda: self.save_dot(from_input=True, exist_ok=True))
@@ -481,6 +485,24 @@ class MainWindow(QMainWindow):
 
     def update_filepath_ui(self):
         self.file_path_edit.setText(self.input_filepath if self.input_filepath else "")
+        self.update_unsaved_indicator()
+
+    def update_unsaved_indicator(self):
+        editor_content = self.editor.toPlainText()
+        is_unsaved = bool(editor_content)
+
+        if self.input_filepath and os.path.isfile(self.input_filepath):
+            try:
+                with open(self.input_filepath, "r", encoding="utf-8") as file:
+                    is_unsaved = editor_content != file.read()
+            except (OSError, UnicodeError):
+                is_unsaved = True
+
+        self.file_label.setStyleSheet("color: red;" if is_unsaved else "color: black;")
+        title = about.__program_name__
+        if is_unsaved:
+            title += CONFIG["no_saved"]
+        self.setWindowTitle(title)
         
     def func_toolbar(self):
         toolbar = QToolBar()
