@@ -18,7 +18,7 @@ from PyQt5.QtSvg import QSvgRenderer
 from PyQt5.QtGui import QPainter
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QShortcut
-from PyQt5.QtGui import QKeySequence, QTextDocument
+from PyQt5.QtGui import QKeySequence, QTextDocument, QTextCursor
 
 
 import graphviz_code_viewer.about as about
@@ -311,11 +311,77 @@ class TextEditor(QPlainTextEdit):
             self.toggle_search_bar()
             return
 
-        if event.key() == Qt.Key_Tab:
-            self.insertPlainText(CONFIG_EDITOR["tab_size"]*" ")  # 4 espaços
+        if event.key() in (Qt.Key_Tab, Qt.Key_Backtab):
+            if event.modifiers() & Qt.ShiftModifier or event.key() == Qt.Key_Backtab:
+                self.indent_selection(outdent=True)
+            elif self.textCursor().hasSelection():
+                self.indent_selection()
+            else:
+                self.insertPlainText(CONFIG_EDITOR["tab_size"] * " ")
             return
 
         super().keyPressEvent(event)
+
+    def indent_selection(self, outdent=False):
+        cursor = self.textCursor()
+        anchor = cursor.anchor()
+        position = cursor.position()
+        selection_start = cursor.selectionStart()
+        selection_end = cursor.selectionEnd()
+
+        first_block = self.document().findBlock(selection_start)
+        last_block = self.document().findBlock(selection_end)
+        if selection_end > selection_start and last_block.position() == selection_end:
+            last_block = last_block.previous()
+
+        blocks = []
+        block = first_block
+        while block.isValid():
+            blocks.append(block.position())
+            if block == last_block:
+                break
+            block = block.next()
+
+        indent = " " * CONFIG_EDITOR["tab_size"]
+        changes = []
+        cursor.beginEditBlock()
+        for block_position in reversed(blocks):
+            line_cursor = QTextCursor(self.document())
+            line_cursor.setPosition(block_position)
+            line_text = line_cursor.block().text()
+
+            if outdent:
+                if line_text.startswith("\t"):
+                    remove_count = 1
+                else:
+                    spaces_to_remove = len(line_text) - len(line_text.lstrip(" "))
+                    remove_count = min(CONFIG_EDITOR["tab_size"], spaces_to_remove)
+                if remove_count:
+                    line_cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, remove_count)
+                    line_cursor.removeSelectedText()
+                    changes.append((block_position, -remove_count))
+            else:
+                line_cursor.insertText(indent)
+                changes.append((block_position, len(indent)))
+        cursor.endEditBlock()
+
+        def adjusted(offset):
+            result = offset
+            for block_position, delta in changes:
+                if delta > 0 and block_position <= offset:
+                    result += delta
+                elif delta < 0:
+                    removed_end = block_position - delta
+                    if offset >= removed_end:
+                        result += delta
+                    elif offset > block_position:
+                        result = block_position
+            return result
+
+        restored_cursor = QTextCursor(self.document())
+        restored_cursor.setPosition(adjusted(anchor))
+        restored_cursor.setPosition(adjusted(position), QTextCursor.KeepAnchor)
+        self.setTextCursor(restored_cursor)
 
     def insertFromMimeData(self, source):
         text = source.text()
